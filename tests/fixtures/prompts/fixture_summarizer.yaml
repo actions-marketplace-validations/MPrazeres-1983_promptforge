@@ -1,0 +1,18 @@
+id: fixture_summarizer
+version: 0.1.0
+description: Fixture prompt for tests.
+template: |
+  Analyse this complaint: {{ text }}
+  Return JSON with category and sentiment.
+inputs:
+  text:
+    type: string
+output:
+  format: json
+  schema:
+    category: { type: string }
+    sentiment: { type: string }
+params:
+  temperature: 0.0
+  max_tokens: 100
+tags: [fixture]

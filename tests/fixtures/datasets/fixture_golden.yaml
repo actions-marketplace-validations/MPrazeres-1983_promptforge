@@ -1,0 +1,21 @@
+dataset_id: fixture_golden
+description: Fixture dataset for unit and integration tests.
+cases:
+  - id: f001
+    input:
+      text: "I was charged twice for the same invoice."
+    expected:
+      category: billing
+      sentiment: negative
+  - id: f002
+    input:
+      text: "The app crashes when I click export."
+    expected:
+      category: bug
+      sentiment: negative
+  - id: f003
+    input:
+      text: "Please add dark mode."
+    expected:
+      category: feature
+      sentiment: neutral

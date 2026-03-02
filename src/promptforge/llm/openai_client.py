@@ -1,0 +1,48 @@
+# src/promptforge/llm/openai_client.py
+from __future__ import annotations
+
+import os
+from typing import Any, Dict, Optional
+
+from openai import OpenAI
+
+from promptforge.llm.client_base import LLMClient, LLMResponse
+
+
+class OpenAIClient(LLMClient):
+    def __init__(
+        self,
+        model: str = "gpt-4o-mini",
+        api_key: Optional[str] = None,
+        base_url: Optional[str] = None,
+        params: Optional[Dict[str, Any]] = None,
+        **kwargs,
+    ):
+        self.model = model  # ← Guarda o modelo aqui
+        self.api_key = api_key or os.getenv("OPENAI_API_KEY")
+        self.base_url = base_url or os.getenv("OPENAI_BASE_URL")
+
+        self.client = OpenAI(
+            api_key=self.api_key,
+            base_url=self.base_url,
+        )
+
+    def complete(self, prompt: str, params: Dict[str, Any]) -> LLMResponse:
+        # Remove 'model' dos params para não conflituar
+        completion_params = {
+            k: v for k, v in params.items()
+            if k not in ("model", "provider")
+        }
+
+        response = self.client.chat.completions.create(
+            model=self.model,  # ← USA self.model, não params
+            messages=[{"role": "user", "content": prompt}],
+            **completion_params,
+        )
+
+        return LLMResponse(
+            content=response.choices[0].message.content,
+            prompt_tokens=response.usage.prompt_tokens,
+            completion_tokens=response.usage.completion_tokens,
+            model=self.model,
+        )

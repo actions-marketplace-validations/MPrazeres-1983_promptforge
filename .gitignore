@@ -1,0 +1,9 @@
+.promptforge/
+__pycache__/
+*.py[cod]
+*$py.class
+.env
+report*.md
+dist/
+build/
+*.egg-info/
