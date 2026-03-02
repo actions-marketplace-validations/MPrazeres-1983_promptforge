@@ -1,0 +1,42 @@
+dataset_id: summarizer_golden
+description: Golden set for the summarizer prompt — billing, bug, and feature cases.
+cases:
+  - id: c001
+    input:
+      text: "I was charged twice for the same invoice last month. This is unacceptable."
+    expected:
+      category: billing
+      sentiment: negative
+    notes: Classic double-charge billing complaint.
+
+  - id: c002
+    input:
+      text: "The export button crashes the app every time I click it on Windows 11."
+    expected:
+      category: bug
+      sentiment: negative
+    notes: Reproducible crash on specific OS.
+
+  - id: c003
+    input:
+      text: "It would be great if you could add dark mode to the dashboard."
+    expected:
+      category: feature
+      sentiment: neutral
+    notes: Feature request, neutral tone.
+
+  - id: c004
+    input:
+      text: "I love the product but I think the reporting section could be more detailed."
+    expected:
+      category: feature
+      sentiment: positive
+    notes: Positive tone with feature suggestion.
+
+  - id: c005
+    input:
+      text: "My subscription was cancelled without warning and I lost all my data."
+    expected:
+      category: billing
+      sentiment: negative
+    notes: High severity billing + data loss.

@@ -1,0 +1,29 @@
+id: summarizer
+version: 0.1.0
+description: Summarize a customer complaint into structured fields.
+template: |
+  You are a precise customer support analyst.
+
+  Analyse the following complaint and return a JSON object with exactly these fields:
+  - "category": one of ["billing", "bug", "feature", "other"]
+  - "sentiment": one of ["negative", "neutral", "positive"]
+  - "summary": a concise summary in maximum 35 words
+
+  Return ONLY valid JSON. No explanation, no markdown, no code blocks.
+
+  Complaint:
+  {{ text }}
+inputs:
+  text:
+    type: string
+    description: Raw customer complaint text
+output:
+  format: json
+  schema:
+    category: { type: string }
+    sentiment: { type: string }
+    summary: { type: string }
+params:
+  temperature: 0.0
+  max_tokens: 220
+tags: [support, json, structured]

@@ -1,0 +1,24 @@
+provider: openai
+model: llama-3.3-70b-versatile
+params:
+  temperature: 0.0
+  max_tokens: 500
+evaluators:
+  - type: heuristic
+    name: json_validity
+  - type: heuristic
+    name: schema_match
+  - type: heuristic
+    name: field_match
+    config:
+      field: category
+  - type: heuristic
+    name: field_match
+    config:
+      field: sentiment
+regression:
+  thresholds:
+    json_validity: 0.05
+    schema_match: 0.05
+    field_match_category: 0.10
+    field_match_sentiment: 0.10
