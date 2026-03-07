@@ -2,9 +2,8 @@
 
 from __future__ import annotations
 
-import pytest
 
-from promptforge.eval.regression import RegressionEngine, DimensionDiff
+from promptforge.eval.regression import RegressionEngine
 
 
 class MockScoreRepo:

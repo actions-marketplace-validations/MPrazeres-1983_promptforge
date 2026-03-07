@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import json
 from pathlib import Path
 from unittest.mock import MagicMock, patch
 
@@ -14,7 +13,7 @@ from promptforge.core.dataset import Dataset
 from promptforge.core.run_config import RunConfig
 from promptforge.core.pipeline import EvalPipeline
 from promptforge.store.db import init_db
-from promptforge.store.repositories import RunRepository, ScoreRepository, CaseResultRepository
+from promptforge.store.repositories import RunRepository, ScoreRepository
 
 
 @pytest.fixture(autouse=True)

@@ -8,7 +8,7 @@ from pathlib import Path
 import pytest
 import yaml
 
-from promptforge.core.dataset import Dataset, TestCase
+from promptforge.core.dataset import Dataset
 from promptforge.core.errors import DatasetError
 
 

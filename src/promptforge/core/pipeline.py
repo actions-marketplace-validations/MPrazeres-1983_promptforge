@@ -5,7 +5,6 @@ from __future__ import annotations
 import json
 import time
 import uuid
-from typing import Any
 
 from rich.console import Console
 from rich.progress import track

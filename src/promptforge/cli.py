@@ -1,20 +1,22 @@
 """PromptForge CLI — entry point for all commands."""
 
 from __future__ import annotations
+
 from dotenv import load_dotenv
-load_dotenv()
 
-import typer
-from rich.console import Console
+load_dotenv()  # Must run before other imports to load env vars
 
-from promptforge.core.prompt_spec import PromptSpec
-from promptforge.core.dataset import Dataset
-from promptforge.core.run_config import RunConfig
-from promptforge.store.db import init_db
-from promptforge.store.repositories import RunRepository
-from promptforge.eval.regression import RegressionEngine
-from promptforge.reporting.markdown_report import MarkdownReporter
-from promptforge.reporting.tables import (
+import typer  # noqa: E402
+from rich.console import Console  # noqa: E402
+
+from promptforge.core.prompt_spec import PromptSpec  # noqa: E402
+from promptforge.core.dataset import Dataset  # noqa: E402
+from promptforge.core.run_config import RunConfig  # noqa: E402
+from promptforge.store.db import init_db  # noqa: E402
+from promptforge.store.repositories import RunRepository  # noqa: E402
+from promptforge.eval.regression import RegressionEngine  # noqa: E402
+from promptforge.reporting.markdown_report import MarkdownReporter  # noqa: E402
+from promptforge.reporting.tables import (  # noqa: E402
     render_run_summary,
     render_diff_table,
     render_top_failures,
@@ -31,7 +33,6 @@ console = Console()
 @app.command()
 def init() -> None:
     """Scaffold a new PromptForge project in the current directory."""
-    import os
     from pathlib import Path
 
     dirs = [

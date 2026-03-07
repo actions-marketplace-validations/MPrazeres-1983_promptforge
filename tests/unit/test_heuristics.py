@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import pytest
 
 from promptforge.eval.heuristics import (
     check_json_validity,
@@ -10,7 +9,6 @@ from promptforge.eval.heuristics import (
     check_field_match,
     check_length_ok,
     check_keyword_match,
-    check_exact_match,
 )
 
 
