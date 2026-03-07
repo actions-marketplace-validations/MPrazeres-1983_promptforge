@@ -43,7 +43,7 @@ jobs:
           pytest tests/integration/ -v
 
       - name: Security audit
-        run: pip audit
+        run: pip-audit
 
   eval-smoke:
     name: Eval Smoke Test
