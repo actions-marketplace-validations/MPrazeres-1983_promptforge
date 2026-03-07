@@ -6,12 +6,13 @@ import os
 from typing import Any, Dict, Optional
 
 import anthropic
+from anthropic.types import TextBlock
 
-from promptforge.llm.client_base import LLMClient, LLMResponse   # FIX #1: era LLMClientBase
+from promptforge.llm.client_base import LLMClient, LLMResponse
 from promptforge.core.errors import LLMClientError
 
 
-class AnthropicClient(LLMClient):                                  # FIX #1: era LLMClientBase
+class AnthropicClient(LLMClient):
     def __init__(
         self,
         model: str = "claude-3-haiku-20240307",
@@ -24,9 +25,7 @@ class AnthropicClient(LLMClient):                                  # FIX #1: era
         self.model = model
         self.params = params or {"temperature": 0.0, "max_tokens": 512}
 
-    def complete(self, prompt: str, params: Dict[str, Any] | None = None) -> LLMResponse:
-        # FIX #2: era `complete(self, prompt: str)` — faltava o parâmetro `params`
-        # O pipeline chama client.complete(rendered, self.rc.params) — 2 argumentos
+    def complete(self, prompt: str, params: Optional[Dict[str, Any]] = None) -> LLMResponse:
         resolved_params = params or self.params
         try:
             response = self.client.messages.create(
@@ -38,7 +37,13 @@ class AnthropicClient(LLMClient):                                  # FIX #1: era
         except Exception as e:
             raise LLMClientError(f"Anthropic API error: {e}") from e
 
-        content = response.content[0].text if response.content else ""
+        # FIX mypy: response.content pode conter vários tipos de blocos (TextBlock,
+        # ToolUseBlock, etc). Filtramos explicitamente apenas os TextBlock.
+        content = next(
+            (block.text for block in response.content if isinstance(block, TextBlock)),
+            ""
+        )
+
         return LLMResponse(
             content=content,
             prompt_tokens=response.usage.input_tokens,
