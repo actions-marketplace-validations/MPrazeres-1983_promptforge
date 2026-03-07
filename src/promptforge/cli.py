@@ -1,6 +1,8 @@
 """PromptForge CLI — entry point for all commands."""
 
 from __future__ import annotations
+from dotenv import load_dotenv
+load_dotenv()
 
 import typer
 from rich.console import Console

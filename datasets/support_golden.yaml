@@ -1,0 +1,74 @@
+dataset_id: support_golden
+description: Casos reais de triagem de tickets de suporte ao cliente.
+cases:
+  - id: t001
+    input:
+      message: "Fui cobrado duas vezes no mês passado e ainda não recebi reembolso."
+    expected:
+      category: billing
+      urgency: high
+      team: finance
+    notes: Cobrança dupla — urgência alta, equipa financeira.
+
+  - id: t002
+    input:
+      message: "A aplicação crasha sempre que tento exportar um relatório em PDF."
+    expected:
+      category: bug
+      urgency: high
+      team: engineering
+    notes: Bug reproduzível com impacto directo no utilizador.
+
+  - id: t003
+    input:
+      message: "Seria útil ter uma opção de modo escuro nas definições."
+    expected:
+      category: feature
+      urgency: low
+      team: product
+    notes: Pedido de funcionalidade, sem urgência.
+
+  - id: t004
+    input:
+      message: "Não consigo fazer login desde ontem. A password está correcta."
+    expected:
+      category: bug
+      urgency: critical
+      team: engineering
+    notes: Utilizador bloqueado — urgência crítica.
+
+  - id: t005
+    input:
+      message: "A minha subscrição foi cancelada automaticamente sem aviso prévio."
+    expected:
+      category: billing
+      urgency: critical
+      team: finance
+    notes: Cancelamento inesperado — possível perda de cliente.
+
+  - id: t006
+    input:
+      message: "Como posso adicionar mais utilizadores à minha conta?"
+    expected:
+      category: other
+      urgency: low
+      team: support
+    notes: Dúvida simples, sem urgência.
+
+  - id: t007
+    input:
+      message: "Os emails de notificação estão a chegar com 2 horas de atraso."
+    expected:
+      category: bug
+      urgency: medium
+      team: engineering
+    notes: Bug de latência, impacto moderado.
+
+  - id: t008
+    input:
+      message: "Gostava que o dashboard mostrasse gráficos comparativos entre meses."
+    expected:
+      category: feature
+      urgency: low
+      team: product
+    notes: Sugestão de melhoria de produto.

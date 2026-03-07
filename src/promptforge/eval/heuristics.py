@@ -108,6 +108,20 @@ def check_exact_match(
     return 0.0, "Output does not match expected text."
 
 
+# FIX #8: o registry agora aceita nomes prefixados do tipo "field_match_*"
+# para permitir múltiplos evaluadores field_match com nomes únicos rastreáveis na DB.
+# A função de lookup normaliza o nome antes de procurar no registry.
+
+def _resolve_heuristic(name: str) -> EvalFn | None:
+    """Resolve um nome de evaluador, suportando prefixos como field_match_category."""
+    if name in HEURISTIC_REGISTRY:
+        return HEURISTIC_REGISTRY[name]
+    # Suporta nomes do tipo "field_match_category", "field_match_sentiment", etc.
+    if name.startswith("field_match_"):
+        return HEURISTIC_REGISTRY.get("field_match")
+    return None
+
+
 HEURISTIC_REGISTRY: dict[str, EvalFn] = {
     "json_validity": check_json_validity,
     "schema_match": check_schema_match,

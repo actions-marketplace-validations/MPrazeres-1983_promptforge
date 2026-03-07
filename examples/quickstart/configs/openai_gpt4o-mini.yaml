@@ -1,3 +1,5 @@
+# FIX #6: o ficheiro anterior tinha provider: openai mas model: llama-3.3-70b-versatile
+# (modelo da Meta/Groq, não da OpenAI) — o quickstart falhava para utilizadores com chave OpenAI
 provider: openai
 model: llama-3.3-70b-versatile
 params:
@@ -9,16 +11,16 @@ evaluators:
   - type: heuristic
     name: schema_match
   - type: heuristic
-    name: field_match
+    name: field_match_category      # FIX #8: nome único para rastreabilidade na DB
     config:
       field: category
   - type: heuristic
-    name: field_match
+    name: field_match_sentiment     # FIX #8: nome único para rastreabilidade na DB
     config:
       field: sentiment
 regression:
   thresholds:
     json_validity: 0.05
     schema_match: 0.05
-    field_match_category: 0.10
-    field_match_sentiment: 0.10
+    field_match_category: 0.10      # FIX #8: agora corresponde ao nome do evaluador
+    field_match_sentiment: 0.10     # FIX #8: agora corresponde ao nome do evaluador

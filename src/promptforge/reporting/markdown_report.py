@@ -6,6 +6,7 @@ from pathlib import Path
 from promptforge.store.repositories import RunRepository, ScoreRepository, CaseResultRepository
 from promptforge.eval.aggregations import aggregate_run_scores, p95_latency, generate_ascii_bar
 
+
 class MarkdownReporter:
     def __init__(self) -> None:
         self.run_repo = RunRepository()
@@ -21,9 +22,13 @@ class MarkdownReporter:
         cases = self.case_repo.get_by_run(run_id)
         agg = aggregate_run_scores(scores)
         latencies = [c["latency_ms"] for c in cases]
-        
+
         if not out_path:
             out_path = f"report_{run_id[:8]}.md"
+
+        # FIX #5: protecção contra divisão por zero se latencies estiver vazio
+        mean_lat = sum(latencies) / len(latencies) if latencies else 0.0
+        p95 = p95_latency(latencies) if latencies else 0.0
 
         lines = [
             f"# 🛠️ PromptForge Evaluation Report",
@@ -46,7 +51,6 @@ class MarkdownReporter:
             f"```text",
         ]
 
-        # Gráficos ASCII de Scores
         for ev, stats in agg.items():
             bar = generate_ascii_bar(stats['mean'])
             lines.append(f"{ev:15} | {bar} | {stats['mean']:.3f}")
@@ -58,8 +62,8 @@ class MarkdownReporter:
             f"| :--- | :--- | :--- |",
             f"| **Total Cases** | {run['total_cases']} | - |",
             f"| **Total Tokens** | {run['total_tokens']} | - |",
-            f"| **Mean Latency** | {sum(latencies)/len(latencies):.0f} ms | {'✅ Fast' if sum(latencies)/len(latencies) < 1000 else '⚠️ Slow'} |",
-            f"| **P95 Latency** | {p95_latency(latencies):.0f} ms | - |",
+            f"| **Mean Latency** | {mean_lat:.0f} ms | {'✅ Fast' if mean_lat < 1000 else '⚠️ Slow'} |",
+            f"| **P95 Latency** | {p95:.0f} ms | - |",
             f"",
             f"---",
             f"",
@@ -78,19 +82,18 @@ class MarkdownReporter:
         else:
             lines.append("✅ **No critical failures detected in this run.**")
 
-        # Secção de Insights Automáticos (Heurística baseada nos dados)
         lines += [
             f"",
             f"### 💡 Automated Insights",
         ]
-        
+
         if any(s['mean'] < 1.0 for s in agg.values()):
             lines.append("- 📉 **Quality Alert:** Some evaluators scored below 1.0. Check the failures table for edge cases.")
-        if p95_latency(latencies) > 2000:
+        if p95 > 2000:
             lines.append("- 🐢 **Latency Alert:** P95 latency is high. Consider optimizing the prompt length or switching models.")
         if run['total_tokens'] > 5000:
             lines.append("- 💸 **Cost Warning:** High token usage detected. Review if the prompt template can be more concise.")
-        
+
         lines += [
             f"",
             f"### 🛠️ Suggested Improvements",

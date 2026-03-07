@@ -1,0 +1,36 @@
+id: support_triage
+version: 1.1.0
+description: Classifica tickets de suporte com definições explícitas de urgência.
+template: |
+  És um agente de triagem de suporte técnico.
+  Analisa a mensagem do cliente e devolve um JSON com exactamente estes campos:
+  - "category": um de ["billing", "bug", "feature", "other"]
+  - "urgency": um de ["low", "medium", "high", "critical"]
+  - "team": um de ["finance", "engineering", "product", "support"]
+  - "reason": uma frase curta a explicar a classificação
+
+  Definições de urgência:
+  - "critical": utilizador completamente bloqueado OU perda de dados OU perda de acesso à conta OU cobrança indevida activa
+  - "high": funcionalidade importante quebrada mas existe alternativa OU cobrança já resolvida mas sem reembolso
+  - "medium": degradação de performance ou atrasos que afectam o trabalho
+  - "low": pedidos de funcionalidade, dúvidas, sugestões
+
+  Devolve APENAS JSON válido. Sem explicações, sem markdown.
+
+  Mensagem do cliente:
+  {{ message }}
+inputs:
+  message:
+    type: string
+    description: Mensagem enviada pelo cliente
+output:
+  format: json
+  schema:
+    category: { type: string }
+    urgency: { type: string }
+    team: { type: string }
+    reason: { type: string }
+params:
+  temperature: 0.0
+  max_tokens: 300
+tags: [support, triage, classification]

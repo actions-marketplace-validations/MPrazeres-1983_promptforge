@@ -15,7 +15,7 @@ from promptforge.core.dataset import Dataset, TestCase
 from promptforge.core.run_config import RunConfig
 from promptforge.core.templating import render_template
 from promptforge.llm.client_base import LLMResponse
-from promptforge.eval.heuristics import HEURISTIC_REGISTRY
+from promptforge.eval.heuristics import _resolve_heuristic
 from promptforge.store.repositories import RunRepository, CaseResultRepository, ScoreRepository
 
 
@@ -48,7 +48,6 @@ class EvalPipeline:
 
     def run(self) -> str:
         run_id = str(uuid.uuid4())
-        started_at = time.time()
 
         self.run_repo.create_run(
             run_id=run_id,
@@ -63,7 +62,6 @@ class EvalPipeline:
         )
 
         client = _build_llm_client(self.rc)
-        print("DEBUG MODEL:", self.rc.model)
         total_tokens = 0
 
         for case in track(self.ds.cases, description="Evaluating...", console=self.console):
@@ -115,8 +113,11 @@ class EvalPipeline:
         results = []
         for ev_conf in self.rc.evaluators:
             if ev_conf.type == "heuristic":
-                fn = HEURISTIC_REGISTRY.get(ev_conf.name)
+                fn = _resolve_heuristic(ev_conf.name)  # suporta field_match_category, etc.
                 if fn is None:
+                    self.console.print(
+                        f"[yellow]⚠ Unknown heuristic evaluator: '{ev_conf.name}'. Skipping.[/yellow]"
+                    )
                     continue
                 score, rationale = fn(
                     output_raw=output_raw,
@@ -126,10 +127,18 @@ class EvalPipeline:
                     prompt_spec=self.ps,
                 )
                 results.append((ev_conf.name, score, rationale))
+            elif ev_conf.type == "judge":
+                self.console.print(
+                    f"[yellow]⚠ LLM-as-judge evaluator '{ev_conf.name}' não está ainda "
+                    f"ligado ao pipeline. Skipping.[/yellow]"
+                )
+            else:
+                self.console.print(
+                    f"[yellow]⚠ Tipo de evaluador desconhecido: '{ev_conf.type}'. Skipping.[/yellow]"
+                )
         return results
 
     def export_json(self, run_id: str, path: str) -> None:
-        import json
         from pathlib import Path
         data = {
             "run_id": run_id,
