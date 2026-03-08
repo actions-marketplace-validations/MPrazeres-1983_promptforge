@@ -20,6 +20,10 @@ evaluators:
     name: field_match_team
     config:
       field: team
+  - type: judge
+    name: quality
+    config:
+      rubric: rubrics/support_quality.yaml
 regression:
   thresholds:
     json_validity: 0.05

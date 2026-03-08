@@ -83,7 +83,7 @@ class EvalPipeline:
                 tokens_out=response.completion_tokens,
             )
 
-            scores = self._evaluate(case, response.content, parsed)
+            scores = self._evaluate(case, response.content, parsed, rendered)
             for evaluator_name, score, rationale in scores:
                 self.score_repo.save(
                     run_id=run_id,
@@ -108,11 +108,13 @@ class EvalPipeline:
         case: TestCase,
         output_raw: str,
         output_parsed: dict | None,
+        rendered_prompt: str = "",
     ) -> list[tuple[str, float, str]]:
         results = []
         for ev_conf in self.rc.evaluators:
+
             if ev_conf.type == "heuristic":
-                fn = _resolve_heuristic(ev_conf.name)  # suporta field_match_category, etc.
+                fn = _resolve_heuristic(ev_conf.name)
                 if fn is None:
                     self.console.print(
                         f"[yellow]⚠ Unknown heuristic evaluator: '{ev_conf.name}'. Skipping.[/yellow]"
@@ -126,15 +128,59 @@ class EvalPipeline:
                     prompt_spec=self.ps,
                 )
                 results.append((ev_conf.name, score, rationale))
+
             elif ev_conf.type == "judge":
-                self.console.print(
-                    f"[yellow]⚠ LLM-as-judge evaluator '{ev_conf.name}' não está ainda "
-                    f"ligado ao pipeline. Skipping.[/yellow]"
-                )
+                # LLM-as-judge agora ligado ao pipeline
+                try:
+                    from promptforge.eval.llm_judge import judge_output
+                    from promptforge.eval.rubrics import Rubric
+
+                    rubric_path = ev_conf.config.get("rubric")
+                    if not rubric_path:
+                        self.console.print(
+                            f"[yellow]⚠ Judge '{ev_conf.name}' não tem 'rubric' definida no config. Skipping.[/yellow]"
+                        )
+                        continue
+
+                    rubric = Rubric.from_yaml(rubric_path)
+                    judge_scores = judge_output(
+                        output=output_raw,
+                        input_context=rendered_prompt,
+                        rubric=rubric,
+                    )
+
+                    # Cada dimensão da rubrica gera um score separado
+                    for dimension, result in judge_scores.items():
+                        if isinstance(result, dict):
+                            raw_score = result.get("score", 0)
+                            rationale = result.get("rationale", "")
+                        else:
+                            # Fallback: o modelo devolveu só o número
+                            raw_score = result
+                            rationale = ""
+
+                        # Normaliza o score para 0.0-1.0
+                        dim_def = next((d for d in rubric.dimensions if d.name == dimension), None)
+                        if dim_def:
+                            min_s = dim_def.scale[0]
+                            max_s = dim_def.scale[-1]
+                            normalized = (raw_score - min_s) / (max_s - min_s) if max_s != min_s else 1.0
+                        else:
+                            normalized = raw_score / 5.0  # fallback: escala 1-5
+
+                        evaluator_name = f"{ev_conf.name}_{dimension}"
+                        results.append((evaluator_name, round(normalized, 4), rationale))
+
+                except Exception as e:
+                    self.console.print(
+                        f"[red]✗ Judge '{ev_conf.name}' falhou: {e}[/red]"
+                    )
+
             else:
                 self.console.print(
                     f"[yellow]⚠ Tipo de evaluador desconhecido: '{ev_conf.type}'. Skipping.[/yellow]"
                 )
+
         return results
 
     def export_json(self, run_id: str, path: str) -> None:

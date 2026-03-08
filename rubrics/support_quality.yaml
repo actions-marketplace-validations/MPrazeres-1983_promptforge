@@ -1,0 +1,12 @@
+rubric_id: support_quality
+judge_model: llama-3.3-70b-versatile
+dimensions:
+  - name: clarity
+    scale: [1, 2, 3, 4, 5]
+    instruction: "Is the reason field clear and easy to understand for a support agent?"
+  - name: accuracy
+    scale: [1, 2, 3, 4, 5]
+    instruction: "Does the classification correctly reflect the customer's problem?"
+  - name: completeness
+    scale: [1, 2, 3, 4, 5]
+    instruction: "Does the response include all required fields with meaningful values?"
