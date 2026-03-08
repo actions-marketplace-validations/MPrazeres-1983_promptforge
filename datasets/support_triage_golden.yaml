@@ -1,0 +1,18 @@
+dataset_id: support_triage_golden
+description: Golden dataset for support_triage
+cases:
+  - id: c001
+    input:
+      text: "TODO: substitui pelo teu input real"
+    expected:
+      field1: "valor esperado"
+      field2: "valor esperado"
+    notes: Exemplo de caso de teste.
+
+  - id: c002
+    input:
+      text: "TODO: substitui pelo teu segundo input real"
+    expected:
+      field1: "valor esperado"
+      field2: "valor esperado"
+    notes: Segundo caso de teste.

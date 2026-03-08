@@ -48,6 +48,166 @@ def init() -> None:
 
 
 @app.command()
+def new() -> None:
+    """Interactive wizard to scaffold a new prompt, dataset and config."""
+    from pathlib import Path
+    import yaml
+
+    console.print("\n[bold cyan]🔨 PromptForge — New Prompt Wizard[/bold cyan]\n")
+
+    # 1. Recolher informação
+    name = typer.prompt("  Prompt name (e.g. support_triage)")
+    description = typer.prompt("  Description")
+    provider = typer.prompt("  Provider", default="openai")
+    model = typer.prompt("  Model", default="llama-3.3-70b-versatile")
+    output_format = typer.prompt("  Output format (text/json)", default="json")
+    version = typer.prompt("  Version", default="0.1.0")
+
+    slug = name.strip().lower().replace(" ", "_")
+
+    # 2. Criar pasta rubrics se não existir
+    Path("prompts").mkdir(exist_ok=True)
+    Path("datasets").mkdir(exist_ok=True)
+    Path("configs").mkdir(exist_ok=True)
+
+    # 3. Criar PromptSpec YAML
+    prompt_path = Path(f"prompts/{slug}.yaml")
+    if prompt_path.exists():
+        overwrite = typer.confirm(f"  ⚠ {prompt_path} already exists. Overwrite?", default=False)
+        if not overwrite:
+            console.print("[yellow]  Skipped prompt file.[/yellow]")
+        else:
+            _write_prompt(prompt_path, slug, version, description, output_format)
+    else:
+        _write_prompt(prompt_path, slug, version, description, output_format)
+
+    # 4. Criar Dataset YAML
+    dataset_path = Path(f"datasets/{slug}_golden.yaml")
+    if dataset_path.exists():
+        overwrite = typer.confirm(f"  ⚠ {dataset_path} already exists. Overwrite?", default=False)
+        if not overwrite:
+            console.print("[yellow]  Skipped dataset file.[/yellow]")
+        else:
+            _write_dataset(dataset_path, slug)
+    else:
+        _write_dataset(dataset_path, slug)
+
+    # 5. Criar Config YAML
+    config_path = Path(f"configs/{slug}.yaml")
+    if config_path.exists():
+        overwrite = typer.confirm(f"  ⚠ {config_path} already exists. Overwrite?", default=False)
+        if not overwrite:
+            console.print("[yellow]  Skipped config file.[/yellow]")
+        else:
+            _write_config(config_path, provider, model, output_format)
+    else:
+        _write_config(config_path, provider, model, output_format)
+
+    # 6. Resumo final
+    console.print(f"\n[bold green]✓ Done![/bold green] Files created:\n")
+    console.print(f"  [cyan]prompts/{slug}.yaml[/cyan]          ← edit your prompt template here")
+    console.print(f"  [cyan]datasets/{slug}_golden.yaml[/cyan]  ← add your test cases here")
+    console.print(f"  [cyan]configs/{slug}.yaml[/cyan]           ← adjust model and evaluators here")
+    console.print(f"\n[bold]Next step:[/bold]")
+    console.print(f"  promptforge eval \\")
+    console.print(f"    --prompt prompts/{slug}.yaml \\")
+    console.print(f"    --dataset datasets/{slug}_golden.yaml \\")
+    console.print(f"    --config configs/{slug}.yaml\n")
+
+
+def _write_prompt(path, slug: str, version: str, description: str, output_format: str) -> None:
+    """Escreve um PromptSpec YAML com template de exemplo."""
+    content = f"""id: {slug}
+version: {version}
+description: {description}
+template: |
+  # TODO: escreve aqui o teu prompt
+  # Usa {{{{ variavel }}}} para inputs dinâmicos. Exemplo:
+  #
+  # Analisa o seguinte texto e responde em JSON:
+  # {{{{ text }}}}
+
+inputs:
+  text:
+    type: string
+    description: Input text to process
+output:
+  format: {output_format}
+{"  schema:" if output_format == "json" else ""}
+{"    field1: { type: string }" if output_format == "json" else ""}
+{"    field2: { type: string }" if output_format == "json" else ""}
+params:
+  temperature: 0.0
+  max_tokens: 300
+tags: []
+"""
+    path.write_text(content, encoding="utf-8")
+    console.print(f"  [green]✓[/green] Created {path}")
+
+
+def _write_dataset(path, slug: str) -> None:
+    """Escreve um Dataset YAML com casos de exemplo."""
+    content = f"""dataset_id: {slug}_golden
+description: Golden dataset for {slug}
+cases:
+  - id: c001
+    input:
+      text: "TODO: substitui pelo teu input real"
+    expected:
+      field1: "valor esperado"
+      field2: "valor esperado"
+    notes: Exemplo de caso de teste.
+
+  - id: c002
+    input:
+      text: "TODO: substitui pelo teu segundo input real"
+    expected:
+      field1: "valor esperado"
+      field2: "valor esperado"
+    notes: Segundo caso de teste.
+"""
+    path.write_text(content, encoding="utf-8")
+    console.print(f"  [green]✓[/green] Created {path}")
+
+
+def _write_config(path, provider: str, model: str, output_format: str) -> None:
+    """Escreve um RunConfig YAML com evaluadores base."""
+    evaluators = """evaluators:
+  - type: heuristic
+    name: json_validity
+  - type: heuristic
+    name: schema_match
+  - type: heuristic
+    name: length_ok
+    config:
+      max_chars: 500
+""" if output_format == "json" else """evaluators:
+  - type: heuristic
+    name: length_ok
+    config:
+      max_chars: 500
+  - type: heuristic
+    name: keyword_match
+    config:
+      keywords: []
+"""
+
+    content = f"""provider: {provider}
+model: {model}
+params:
+  temperature: 0.0
+  max_tokens: 300
+{evaluators}
+regression:
+  thresholds:
+    json_validity: 0.05
+    schema_match: 0.05
+"""
+    path.write_text(content, encoding="utf-8")
+    console.print(f"  [green]✓[/green] Created {path}")
+
+
+@app.command()
 def validate(
     prompt: str = typer.Option(..., help="Path to PromptSpec YAML"),
     dataset: str = typer.Option(..., help="Path to Dataset YAML or JSONL"),

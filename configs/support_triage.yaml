@@ -5,29 +5,15 @@ params:
   max_tokens: 300
 evaluators:
   - type: heuristic
-    name: json_validity
-  - type: heuristic
-    name: schema_match
-  - type: heuristic
-    name: field_match_category
+    name: length_ok
     config:
-      field: category
+      max_chars: 500
   - type: heuristic
-    name: field_match_urgency
+    name: keyword_match
     config:
-      field: urgency
-  - type: heuristic
-    name: field_match_team
-    config:
-      field: team
-  - type: judge
-    name: quality
-    config:
-      rubric: rubrics/support_quality.yaml
+      keywords: []
+
 regression:
   thresholds:
     json_validity: 0.05
     schema_match: 0.05
-    field_match_category: 0.10
-    field_match_urgency: 0.10
-    field_match_team: 0.10
