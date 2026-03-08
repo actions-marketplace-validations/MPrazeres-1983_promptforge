@@ -7,6 +7,8 @@ from typing import Any, Dict, Optional
 
 import anthropic
 from anthropic.types import TextBlock
+from anthropic import Anthropic, NOT_GIVEN
+from anthropic._types import Omit
 
 from promptforge.llm.client_base import LLMClient, LLMResponse
 from promptforge.core.errors import LLMClientError
@@ -44,7 +46,7 @@ class AnthropicClient(LLMClient):
                 max_tokens=resolved_params.get("max_tokens", 512),
                 messages=[{"role": "user", "content": prompt}],
                 temperature=resolved_params.get("temperature", 0.0),
-                system=system_prompt if system_prompt and system_prompt.strip() else anthropic.NOT_GIVEN,
+                system=system_prompt if system_prompt and system_prompt.strip() else Omit(),
             )
         except Exception as e:
             raise LLMClientError(f"Anthropic API error: {e}") from e
