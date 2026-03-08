@@ -33,14 +33,12 @@ class OpenAIClient(LLMClient):
         params: Dict[str, Any],
         system_prompt: Optional[str] = None,
     ) -> LLMResponse:
-        # Remove 'model' dos params para não conflituar
         completion_params = {
             k: v for k, v in params.items()
             if k not in ("model", "provider")
         }
 
-        # Constrói a lista de mensagens com system prompt opcional
-        messages = []
+        messages: list[Any] = []
         if system_prompt and system_prompt.strip():
             messages.append({"role": "system", "content": system_prompt})
         messages.append({"role": "user", "content": prompt})
@@ -51,9 +49,11 @@ class OpenAIClient(LLMClient):
             **completion_params,
         )
 
+        content = response.choices[0].message.content or ""
+        usage = response.usage
         return LLMResponse(
-            content=response.choices[0].message.content,
-            prompt_tokens=response.usage.prompt_tokens,
-            completion_tokens=response.usage.completion_tokens,
+            content=content,
+            prompt_tokens=usage.prompt_tokens if usage else 0,
+            completion_tokens=usage.completion_tokens if usage else 0,
             model=self.model,
         )

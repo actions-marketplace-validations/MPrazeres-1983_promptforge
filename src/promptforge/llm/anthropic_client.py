@@ -44,7 +44,7 @@ class AnthropicClient(LLMClient):
                 max_tokens=resolved_params.get("max_tokens", 512),
                 messages=[{"role": "user", "content": prompt}],
                 temperature=resolved_params.get("temperature", 0.0),
-                **extra,
+                system=system_prompt if system_prompt and system_prompt.strip() else anthropic.NOT_GIVEN,
             )
         except Exception as e:
             raise LLMClientError(f"Anthropic API error: {e}") from e
