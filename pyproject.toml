@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "promptforge-llmops"
-version = "0.1.0"
+version = "0.2.0"
 description = "A minimalist LLMOps framework for prompt versioning, evaluation and regression testing."
 readme = "README.md"
 license = { file = "LICENSE" }
