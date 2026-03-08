@@ -25,20 +25,30 @@ class AnthropicClient(LLMClient):
         self.model = model
         self.params = params or {"temperature": 0.0, "max_tokens": 512}
 
-    def complete(self, prompt: str, params: Optional[Dict[str, Any]] = None) -> LLMResponse:
+    def complete(
+        self,
+        prompt: str,
+        params: Optional[Dict[str, Any]] = None,
+        system_prompt: Optional[str] = None,
+    ) -> LLMResponse:
         resolved_params = params or self.params
+
+        # Constrói kwargs opcionais — a API Anthropic aceita 'system' como argumento separado
+        extra = {}
+        if system_prompt and system_prompt.strip():
+            extra["system"] = system_prompt
+
         try:
             response = self.client.messages.create(
                 model=self.model,
                 max_tokens=resolved_params.get("max_tokens", 512),
                 messages=[{"role": "user", "content": prompt}],
                 temperature=resolved_params.get("temperature", 0.0),
+                **extra,
             )
         except Exception as e:
             raise LLMClientError(f"Anthropic API error: {e}") from e
 
-        # FIX mypy: response.content pode conter vários tipos de blocos (TextBlock,
-        # ToolUseBlock, etc). Filtramos explicitamente apenas os TextBlock.
         content = next(
             (block.text for block in response.content if isinstance(block, TextBlock)),
             ""

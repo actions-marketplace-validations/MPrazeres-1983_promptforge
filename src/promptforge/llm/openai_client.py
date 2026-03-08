@@ -18,7 +18,7 @@ class OpenAIClient(LLMClient):
         params: Optional[Dict[str, Any]] = None,
         **kwargs,
     ):
-        self.model = model  # ← Guarda o modelo aqui
+        self.model = model
         self.api_key = api_key or os.getenv("OPENAI_API_KEY")
         self.base_url = base_url or os.getenv("OPENAI_BASE_URL")
 
@@ -27,16 +27,27 @@ class OpenAIClient(LLMClient):
             base_url=self.base_url,
         )
 
-    def complete(self, prompt: str, params: Dict[str, Any]) -> LLMResponse:
+    def complete(
+        self,
+        prompt: str,
+        params: Dict[str, Any],
+        system_prompt: Optional[str] = None,
+    ) -> LLMResponse:
         # Remove 'model' dos params para não conflituar
         completion_params = {
             k: v for k, v in params.items()
             if k not in ("model", "provider")
         }
 
+        # Constrói a lista de mensagens com system prompt opcional
+        messages = []
+        if system_prompt and system_prompt.strip():
+            messages.append({"role": "system", "content": system_prompt})
+        messages.append({"role": "user", "content": prompt})
+
         response = self.client.chat.completions.create(
-            model=self.model,  # ← USA self.model, não params
-            messages=[{"role": "user", "content": prompt}],
+            model=self.model,
+            messages=messages,
             **completion_params,
         )
 

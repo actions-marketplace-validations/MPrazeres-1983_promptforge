@@ -1,23 +1,54 @@
 id: support_triage
-version: 0.1.0
-description: triagem de emails
+version: 1.2.0
+description: Classifica tickets de suporte por categoria, urgência e equipa responsável.
+system_prompt: "You are a precise customer support triage agent. Always respond with valid JSON only. No explanations outside the JSON."
 template: |
-  # TODO: escreve aqui o teu prompt
-  # Usa {{ variavel }} para inputs dinâmicos. Exemplo:
-  #
-  # Analisa o seguinte texto e responde em JSON:
-  # {{ text }}
+  Classify the following customer support message.
+
+  Categories (pick the most specific):
+  - "billing": payment issues, charges, invoices, subscriptions, refunds
+  - "technical": general technical issues, errors, performance problems
+  - "account": login, access, permissions, account settings
+  - "bug": confirmed or suspected software defect with unexpected behaviour
+  - "feature": feature requests, suggestions, improvements
+  - "general": questions, feedback, other inquiries
+  - "other": does not fit any category above
+
+  Teams:
+  - "finance": billing and payment issues
+  - "engineering": bugs, technical issues, performance
+  - "product": feature requests and suggestions
+  - "support": account issues, general questions, other
+
+  Urgency definitions:
+  - "critical": user completely blocked OR data loss OR account access lost OR active incorrect charge
+  - "high": important feature broken but workaround exists OR charge resolved but no refund yet
+  - "medium": performance degradation or delays affecting work
+  - "low": feature requests, questions, suggestions
+
+  Respond ONLY with a JSON object with these fields:
+  - category: string
+  - urgency: string
+  - team: string
+  - reason: string (one sentence explanation)
+
+  Message: {{ message }}
 
 inputs:
-  text:
+  message:
     type: string
-    description: Input text to process
+    description: Customer support message to classify
 output:
-  format: text
-
-
-
+  format: json
+  schema:
+    category: { type: string }
+    urgency: { type: string }
+    team: { type: string }
+    reason: { type: string }
 params:
   temperature: 0.0
   max_tokens: 300
-tags: []
+tags:
+  - support
+  - triage
+  - classification

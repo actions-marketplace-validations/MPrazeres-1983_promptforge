@@ -29,6 +29,7 @@ class PromptSpec(BaseModel):
     version: str
     description: str
     template: str
+    system_prompt: str = ""  # opcional — separado do user prompt
     inputs: dict[str, InputDef] = Field(default_factory=dict)
     output: OutputDef = Field(default_factory=OutputDef)
     params: dict[str, Any] = Field(default_factory=lambda: {"temperature": 0.0, "max_tokens": 512})
@@ -54,10 +55,14 @@ class PromptSpec(BaseModel):
             raise PromptSpecError(f"Validation error in {path}: {e}") from e
 
         spec.source_path = str(p.resolve())
+        # Inclui o system_prompt no hash para detectar mudanças nele também
         spec.content_hash = hash_content(
-            spec.template + yaml.dump(spec.params, sort_keys=True)
+            spec.system_prompt + spec.template + yaml.dump(spec.params, sort_keys=True)
         )
         return spec
+
+    def has_system_prompt(self) -> bool:
+        return bool(self.system_prompt.strip())
 
     def input_names(self) -> list[str]:
         return list(self.inputs.keys())

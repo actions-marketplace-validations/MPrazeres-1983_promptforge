@@ -32,10 +32,10 @@ cases:
     input:
       message: "Não consigo fazer login desde ontem. A password está correcta."
     expected:
-      category: bug
+      category: account # era: bug
       urgency: critical
-      team: engineering
-    notes: Utilizador bloqueado — urgência crítica.
+      team: support # era: engineering
+    notes: Utilizador bloqueado — problema de acesso à conta.
 
   - id: t005
     input:
@@ -50,19 +50,19 @@ cases:
     input:
       message: "Como posso adicionar mais utilizadores à minha conta?"
     expected:
-      category: other
+      category: account # era: other
       urgency: low
       team: support
-    notes: Dúvida simples, sem urgência.
+    notes: Dúvida sobre gestão de conta, sem urgência.
 
   - id: t007
     input:
       message: "Os emails de notificação estão a chegar com 2 horas de atraso."
     expected:
-      category: bug
+      category: technical # era: bug
       urgency: medium
       team: engineering
-    notes: Bug de latência, impacto moderado.
+    notes: Problema técnico de latência, impacto moderado.
 
   - id: t008
     input:

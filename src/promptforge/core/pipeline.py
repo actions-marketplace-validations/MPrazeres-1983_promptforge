@@ -66,7 +66,11 @@ class EvalPipeline:
         for case in track(self.ds.cases, description="Evaluating...", console=self.console):
             rendered = render_template(self.ps.template, case.input)
             t0 = time.time()
-            response: LLMResponse = client.complete(rendered, self.rc.params)
+            response: LLMResponse = client.complete(
+                rendered,
+                self.rc.params,
+                system_prompt=self.ps.system_prompt or None,
+)
             latency_ms = (time.time() - t0) * 1000
             total_tokens += response.total_tokens
 
@@ -98,8 +102,16 @@ class EvalPipeline:
         return run_id
 
     def _try_parse_json(self, text: str) -> dict | None:
+        clean = text.strip()
+        # Remove markdown code blocks que alguns modelos adicionam
+        if clean.startswith("```"):
+            lines = clean.split("\n")
+            clean = "\n".join(lines[1:])
+        if clean.endswith("```"):
+            lines = clean.split("\n")
+            clean = "\n".join(lines[:-1])
         try:
-            return json.loads(text.strip())
+            return json.loads(clean.strip())
         except (json.JSONDecodeError, ValueError):
             return None
 
