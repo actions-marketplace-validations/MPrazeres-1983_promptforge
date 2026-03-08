@@ -104,12 +104,12 @@ def new() -> None:
         _write_config(config_path, provider, model, output_format)
 
     # 6. Resumo final
-    console.print(f"\n[bold green]✓ Done![/bold green] Files created:\n")
+    console.print("\n[bold green]✓ Done![/bold green] Files created:\n")
     console.print(f"  [cyan]prompts/{slug}.yaml[/cyan]          ← edit your prompt template here")
     console.print(f"  [cyan]datasets/{slug}_golden.yaml[/cyan]  ← add your test cases here")
     console.print(f"  [cyan]configs/{slug}.yaml[/cyan]           ← adjust model and evaluators here")
-    console.print(f"\n[bold]Next step:[/bold]")
-    console.print(f"  promptforge eval \\")
+    console.print("\n[bold]Next step:[/bold]")
+    console.print("  promptforge eval \\")
     console.print(f"    --prompt prompts/{slug}.yaml \\")
     console.print(f"    --dataset datasets/{slug}_golden.yaml \\")
     console.print(f"    --config configs/{slug}.yaml\n")
