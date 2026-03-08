@@ -1,0 +1,35 @@
+name: Prompt Eval
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "prompts/**"
+      - "datasets/**"
+      - "configs/**"
+  pull_request:
+    paths:
+      - "prompts/**"
+      - "datasets/**"
+      - "configs/**"
+
+jobs:
+  eval:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Run PromptForge eval
+        id: pf
+        uses: MPrazeres-1983/promptforge@v1
+        with:
+          prompt: prompts/support_triage.yaml
+          dataset: datasets/support_golden.yaml
+          config: configs/support_triage.yaml
+          openai-api-key: ${{ secrets.OPENAI_API_KEY }}
+          openai-base-url: ${{ secrets.OPENAI_BASE_URL }}
+          # baseline-run-id: <run_id_from_main_branch>
+          fail-on-regression: "true"
+
+      - name: Show run ID
+        run: echo "Run ID ${{ steps.pf.outputs.run-id }}"
