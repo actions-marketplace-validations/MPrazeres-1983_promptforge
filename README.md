@@ -373,6 +373,55 @@ rubrics/      # Your LLM-as-judge rubric YAML files
 
 ---
 
+## CI/CD Integration
+
+Add prompt regression testing to any GitHub Actions workflow:
+
+```yaml
+# .github/workflows/prompt-eval.yml
+name: Prompt Eval
+
+on:
+  push:
+    paths:
+      - "prompts/**"
+      - "datasets/**"
+      - "configs/**"
+
+jobs:
+  eval:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Run PromptForge eval
+        id: pf
+        uses: MPrazeres-1983/promptforge@v1
+        with:
+          prompt: prompts/support_triage.yaml
+          dataset: datasets/support_golden.yaml
+          config: configs/support_triage.yaml
+          openai-api-key: ${{ secrets.OPENAI_API_KEY }}
+          openai-base-url: ${{ secrets.OPENAI_BASE_URL }}
+          fail-on-regression: "true"
+```
+
+The action automatically installs `promptforge-llmops`, runs the eval, and fails the workflow if regressions are detected. Available on the [GitHub Marketplace](https://github.com/marketplace/actions/promptforge-eval).
+
+**Inputs:**
+
+| Input                | Required | Description                                           |
+| -------------------- | -------- | ----------------------------------------------------- |
+| `prompt`             | ✅       | Path to PromptSpec YAML                               |
+| `dataset`            | ✅       | Path to Dataset YAML or JSONL                         |
+| `config`             | ✅       | Path to RunConfig YAML                                |
+| `openai-api-key`     | ✅       | API key for OpenAI or compatible provider             |
+| `openai-base-url`    | ❌       | Base URL for Groq or other compatible providers       |
+| `baseline-run-id`    | ❌       | Run ID to diff against (enables regression detection) |
+| `fail-on-regression` | ❌       | Fail workflow on regressions (default: `true`)        |
+
+---
+
 ## Docs
 
 - [Architecture](docs/architecture.md)
