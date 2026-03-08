@@ -323,6 +323,14 @@ def runs(
         )
     console.print(table)
 
-
+@app.command()
+def history(
+    prompt: str = typer.Option(..., help="Prompt ID to show history for"),
+) -> None:
+    """Show score evolution across versions of a prompt."""
+    from promptforge.reporting.tables import render_prompt_history
+    init_db()
+    render_prompt_history(prompt, console)
+    
 if __name__ == "__main__":
     app()
