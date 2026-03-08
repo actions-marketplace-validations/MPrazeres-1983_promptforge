@@ -7,7 +7,7 @@ from typing import Any, Dict, Optional
 
 import anthropic
 from anthropic.types import TextBlock
-from anthropic import Anthropic, NOT_GIVEN
+
 from anthropic._types import Omit
 
 from promptforge.llm.client_base import LLMClient, LLMResponse
