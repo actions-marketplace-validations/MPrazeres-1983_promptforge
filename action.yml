@@ -1,0 +1,95 @@
+name: PromptForge Eval
+description: Run prompt evaluation and regression testing with PromptForge.
+author: Mário Prazeres
+
+branding:
+  icon: check-circle
+  color: blue
+
+inputs:
+  prompt:
+    description: Path to the PromptSpec YAML file.
+    required: true
+  dataset:
+    description: Path to the Dataset YAML or JSONL file.
+    required: true
+  config:
+    description: Path to the RunConfig YAML file.
+    required: true
+  openai-api-key:
+    description: API key for OpenAI or any compatible provider (e.g. Groq).
+    required: true
+  openai-base-url:
+    description: Base URL for OpenAI-compatible providers (e.g. https://api.groq.com/openai/v1).
+    required: false
+    default: ""
+  baseline-run-id:
+    description: Run ID to compare against (enables regression detection).
+    required: false
+    default: ""
+  fail-on-regression:
+    description: Fail the workflow if regressions are detected.
+    required: false
+    default: "true"
+  python-version:
+    description: Python version to use.
+    required: false
+    default: "3.11"
+
+outputs:
+  run-id:
+    description: The run ID produced by this evaluation.
+    value: ${{ steps.eval.outputs.run-id }}
+  has-regressions:
+    description: Whether regressions were detected (true/false).
+    value: ${{ steps.diff.outputs.has-regressions }}
+
+runs:
+  using: composite
+  steps:
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: ${{ inputs.python-version }}
+
+    - name: Install promptforge-llmops
+      shell: bash
+      run: pip install promptforge-llmops
+
+    - name: Run eval
+      id: eval
+      shell: bash
+      env:
+        OPENAI_API_KEY: ${{ inputs.openai-api-key }}
+        OPENAI_BASE_URL: ${{ inputs.openai-base-url }}
+      run: |
+        OUTPUT=$(promptforge eval \
+          --prompt "${{ inputs.prompt }}" \
+          --dataset "${{ inputs.dataset }}" \
+          --config "${{ inputs.config }}")
+        echo "$OUTPUT"
+        RUN_ID=$(echo "$OUTPUT" | grep -oP 'run_id=\K[a-f0-9-]+')
+        echo "run-id=$RUN_ID" >> $GITHUB_OUTPUT
+
+    - name: Run diff (regression detection)
+      id: diff
+      if: inputs.baseline-run-id != ''
+      shell: bash
+      env:
+        OPENAI_API_KEY: ${{ inputs.openai-api-key }}
+        OPENAI_BASE_URL: ${{ inputs.openai-base-url }}
+      run: |
+        set +e
+        promptforge diff \
+          --baseline "${{ inputs.baseline-run-id }}" \
+          --candidate "${{ steps.eval.outputs.run-id }}"
+        EXIT_CODE=$?
+        if [ $EXIT_CODE -ne 0 ]; then
+          echo "has-regressions=true" >> $GITHUB_OUTPUT
+          if [ "${{ inputs.fail-on-regression }}" = "true" ]; then
+            echo "❌ Regressions detected. Failing workflow."
+            exit 1
+          fi
+        else
+          echo "has-regressions=false" >> $GITHUB_OUTPUT
+        fi
