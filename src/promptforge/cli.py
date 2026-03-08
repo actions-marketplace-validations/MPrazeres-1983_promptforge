@@ -51,7 +51,6 @@ def init() -> None:
 def new() -> None:
     """Interactive wizard to scaffold a new prompt, dataset and config."""
     from pathlib import Path
-    import yaml
 
     console.print("\n[bold cyan]🔨 PromptForge — New Prompt Wizard[/bold cyan]\n")
 
