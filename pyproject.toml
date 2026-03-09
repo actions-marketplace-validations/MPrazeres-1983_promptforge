@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "promptforge-llmops"
-version = "0.2.0"
+version = "0.2.1"
 description = "A minimalist LLMOps framework for prompt versioning, evaluation and regression testing."
 readme = "README.md"
 license = { file = "LICENSE" }
@@ -53,6 +53,9 @@ promptforge = "promptforge.cli:app"
 
 [tool.setuptools.packages.find]
 where = ["src"]
+
+[tool.setuptools.package-data]
+promptforge = ["store/schema.sql"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
