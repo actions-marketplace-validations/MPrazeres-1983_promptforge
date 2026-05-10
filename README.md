@@ -1,235 +1,294 @@
 # PromptForge 🔨
 
-> I changed a prompt in production. The urgency classifier dropped from 100% to 75%. Nobody noticed for two weeks. That's the problem PromptForge solves.
+> Prompt regression testing for teams that treat prompts like production artefacts.
 
-**PromptForge** is a minimalist, open-source LLMOps framework for prompt versioning, evaluation, and regression testing. Built by someone who wrote [a book on prompt engineering](https://github.com/marioPrazeres/prompt-engineering-book) — and got tired of "vibes-based" quality control.
+**PromptForge** is an open-source LLMOps framework for prompt versioning, evaluation and regression testing.
+
+It helps you answer a simple but critical question:
+
+> Did this prompt change actually improve the system, or did it silently break something?
+
+PromptForge treats prompts as testable artefacts: versioned, hashed, evaluated, diffed and auditable.
 
 ---
 
-## The Problem
+## Why PromptForge Exists
 
-You change a prompt. You run it manually on 3 examples. It "feels better". You ship it.
+Prompt changes are often tested manually:
 
-Two days later, a category of inputs silently degrades. You have no baseline, no metrics, no diff. You have a hunch.
+1. Edit the prompt.
+2. Run it on a few examples.
+3. It feels better.
+4. Ship it.
 
-**PromptForge treats prompts like code**: versioned, tested, diffed, and auditable.
+The problem is that prompt regressions are usually silent.
+
+A prompt may improve one class of inputs while degrading another. Without a baseline, a golden dataset, measurable scores and a diff between versions, you are relying on intuition instead of evidence.
+
+PromptForge brings software quality practices to prompt engineering:
+
+- Golden datasets
+- Reproducible evaluations
+- Heuristic evaluators
+- Regression detection
+- Score history
+- Markdown reports
+- CI/CD integration
 
 ---
 
 ## Real Example — Support Ticket Triage
 
-Here's a real scenario: an AI system that classifies customer support tickets by **category**, **urgency**, and **responsible team**.
+Imagine an AI system that classifies customer support tickets by:
 
-### The prompt was "working". But was it really?
+- `category`
+- `urgency`
+- `responsible_team`
 
-We ran PromptForge against 8 real support cases and discovered:
+The prompt appears to work. But does it actually meet the expected behaviour?
 
-```
+Running PromptForge against 8 support cases produced this result:
+
+```text
 Evaluator             | Mean Score | Failure Rate | Cases
 json_validity         |      1.000 |         0.0% |     8   ✅
 schema_match          |      1.000 |         0.0% |     8   ✅
 field_match_category  |      1.000 |         0.0% |     8   ✅
-field_match_urgency   |      0.750 |        25.0% |     8   ⚠️  ← problem found
+field_match_urgency   |      0.750 |        25.0% |     8   ⚠️
 field_match_team      |      1.000 |         0.0% |     8   ✅
 ```
 
-**PromptForge pinpointed the exact failures:**
+PromptForge identified the exact failures:
 
 | Case | Customer Message                                    | Expected   | Got    | Status |
 | ---- | --------------------------------------------------- | ---------- | ------ | ------ |
 | t004 | "Can't login since yesterday, password is correct." | `critical` | `high` | ❌     |
 | t005 | "My subscription was cancelled without warning."    | `critical` | `high` | ❌     |
 
-**Root cause:** The prompt had no definition of what `critical` means for this company. The model couldn't distinguish `high` from `critical`.
+The issue was not the model. The prompt had no clear definition of what `critical` meant for that business context.
 
-### The fix: explicit urgency definitions (v1.1.0)
+### Prompt v1.1.0
 
-We added a definitions block to the prompt:
+The prompt was updated with explicit urgency definitions:
 
+```text
+- critical: user completely blocked OR data loss OR account access lost OR active incorrect charge
+- high: important feature broken but workaround exists OR charge resolved but no refund yet
+- medium: performance degradation or delays affecting work
+- low: feature requests, questions, suggestions
 ```
-- "critical": user completely blocked OR data loss OR account access lost OR active incorrect charge
-- "high": important feature broken but workaround exists OR charge resolved but no refund yet
-- "medium": performance degradation or delays affecting work
-- "low": feature requests, questions, suggestions
-```
 
-### The result — proved with data, not gut feeling:
+Then PromptForge compared the baseline run with the candidate run:
 
-```
+```bash
 promptforge diff --baseline <v1.0.0-run> --candidate <v1.1.0-run>
+```
 
+```text
 Evaluator             | Baseline | Candidate | Delta  | Status
 field_match_category  |    1.000 |     1.000 | +0.000 | — unchanged
 field_match_team      |    1.000 |     1.000 | +0.000 | — unchanged
-field_match_urgency   |    0.750 |     1.000 | +0.250 | ✅ IMPROVED
+field_match_urgency   |    0.750 |     1.000 | +0.250 | ✅ improved
 json_validity         |    1.000 |     1.000 | +0.000 | — unchanged
 schema_match          |    1.000 |     1.000 | +0.000 | — unchanged
 
 ✓ No regressions detected.
 ```
 
-**+25% improvement on urgency. Zero regressions. Proven.**
+Result:
 
-This is what you normally don't have. Without PromptForge, you change a prompt, test on 2 examples, and ship hoping for the best. With PromptForge, you have written, reproducible proof.
+```text
++25% improvement on urgency classification.
+Zero regressions detected.
+```
+
+This is the core value of PromptForge: prompt changes become measurable, reviewable and reproducible.
 
 ---
 
 ## Core Concepts
 
-| Concept        | What it is                                                                                          |
+| Concept        | Description                                                                                         |
 | -------------- | --------------------------------------------------------------------------------------------------- |
-| **PromptSpec** | A YAML file defining your prompt template, system prompt, inputs, output contract, and model params |
-| **Dataset**    | A golden set of `{input, expected}` cases — real examples with known correct answers                |
-| **Run**        | One execution of a PromptSpec against a Dataset — produces scores per case                          |
-| **Evaluator**  | A function that scores each output (heuristic or LLM-as-judge)                                      |
-| **Diff**       | A comparison between two Runs showing regressions and improvements                                  |
-| **Report**     | A Markdown report with ASCII charts, failure analysis, and automated insights                       |
+| **PromptSpec** | YAML file defining the prompt template, system prompt, inputs, output contract and model parameters |
+| **Dataset**    | Golden set of input/expected examples used as the evaluation baseline                               |
+| **Run**        | Execution of a PromptSpec against a Dataset                                                         |
+| **Evaluator**  | Function that scores each output                                                                    |
+| **Diff**       | Comparison between two runs, showing regressions and improvements                                   |
+| **Report**     | Markdown report with scores, failure analysis and evaluation summary                                |
 
 ---
 
-## Quickstart
+## Installation
+
+Install the package from PyPI:
 
 ```bash
-# Install
 pip install promptforge-llmops
+```
 
-# Set your API key (OpenAI, Anthropic, or any OpenAI-compatible provider like Groq)
-# .env file:
-# OPENAI_API_KEY=your-key-here
-# OPENAI_BASE_URL=https://api.groq.com/openai/v1  ← optional, for Groq (free tier available)
+The installed CLI command is:
 
-# Scaffold a new prompt interactively
+```bash
+promptforge
+```
+
+---
+
+## Quickstart with Groq
+
+PromptForge currently works with Groq through its OpenAI-compatible API.
+
+Create a `.env` file:
+
+```bash
+GROQ_API_KEY=your-groq-api-key
+OPENAI_API_KEY=${GROQ_API_KEY}
+OPENAI_BASE_URL=https://api.groq.com/openai/v1
+```
+
+Alternatively, export the variables directly in your shell:
+
+```bash
+export GROQ_API_KEY="your-groq-api-key"
+export OPENAI_API_KEY="$GROQ_API_KEY"
+export OPENAI_BASE_URL="https://api.groq.com/openai/v1"
+```
+
+Create a new prompt evaluation project:
+
+```bash
 promptforge new
+```
 
-# Or initialise a project manually
+Or initialise a project manually:
+
+```bash
 promptforge init
+```
 
-# Validate your files
+Validate your prompt, dataset and config:
+
+```bash
 promptforge validate \
   --prompt prompts/my_prompt.yaml \
   --dataset datasets/my_golden.yaml
+```
 
-# Run evaluation
+Run an evaluation:
+
+```bash
 promptforge eval \
   --prompt prompts/my_prompt.yaml \
   --dataset datasets/my_golden.yaml \
   --config configs/my_config.yaml
+```
 
-# Compare two runs (detect regressions)
+Compare two runs:
+
+```bash
 promptforge diff --baseline <run_id_A> --candidate <run_id_B>
+```
 
-# View score evolution across versions
+View score history:
+
+```bash
 promptforge history --prompt my_prompt
+```
 
-# Generate Markdown report
+Generate a Markdown report:
+
+```bash
 promptforge report --run <run_id> --out report.md
+```
 
-# View recent runs
+List recent runs:
+
+```bash
 promptforge runs
 ```
 
 ---
 
-## `promptforge new` — Interactive Wizard
+## Interactive Wizard
 
-The fastest way to get started. One command creates all three files you need:
+The fastest way to start is:
 
+```bash
+promptforge new
 ```
-$ promptforge new
 
+Example:
+
+```text
 🔨 PromptForge — New Prompt Wizard
 
-  Prompt name: support_triage
-  Description: Classifies customer support tickets
-  Provider [openai]: openai
-  Model [llama-3.3-70b-versatile]:
-  Output format (text/json) [json]: json
-  Version [0.1.0]:
+Prompt name: support_triage
+Description: Classifies customer support tickets
+Provider [openai]: openai
+Model [llama-3.3-70b-versatile]:
+Output format (text/json) [json]: json
+Version [0.1.0]:
 
-  ✓ Created prompts/support_triage.yaml
-  ✓ Created datasets/support_triage_golden.yaml
-  ✓ Created configs/support_triage.yaml
+✓ Created prompts/support_triage.yaml
+✓ Created datasets/support_triage_golden.yaml
+✓ Created configs/support_triage.yaml
+```
 
 Next step:
-  promptforge eval \
-    --prompt prompts/support_triage.yaml \
-    --dataset datasets/support_triage_golden.yaml \
-    --config configs/support_triage.yaml
+
+```bash
+promptforge eval \
+  --prompt prompts/support_triage.yaml \
+  --dataset datasets/support_triage_golden.yaml \
+  --config configs/support_triage.yaml
 ```
 
 ---
 
-## System Prompt Support
+## PromptSpec Example
 
-Define a `system_prompt` separately from your user template — the way modern models work best:
+PromptForge supports separate `system_prompt` and user `template` fields.
 
 ```yaml
 id: support_triage
 version: 1.2.0
-system_prompt: "You are a precise support triage agent. Always respond with valid JSON only."
+
+system_prompt: |
+  You are a precise support triage agent.
+  Always respond with valid JSON only.
+
 template: |
-  Classify the following message: {{ message }}
+  Classify the following customer message:
+
+  {{ message }}
+
+output_format: json
+
+model:
+  provider: openai
+  name: llama-3.3-70b-versatile
+  temperature: 0
 ```
 
-PromptForge sends them as separate messages to the API. Changes to either the system prompt or the template are tracked in the content hash — so a diff will catch regressions even if only the system prompt changed.
-
----
-
-## LLM-as-Judge Evaluators
-
-Beyond heuristics, PromptForge supports **LLM-as-judge** evaluation using rubrics. Define a rubric YAML:
-
-```yaml
-# rubrics/support_quality.yaml
-rubric_id: support_quality
-judge_model: llama-3.3-70b-versatile
-dimensions:
-  - name: clarity
-    scale: [1, 2, 3, 4, 5]
-    instruction: "Is the reason field clear and easy to understand for a support agent?"
-  - name: accuracy
-    scale: [1, 2, 3, 4, 5]
-    instruction: "Does the classification correctly reflect the customer's problem?"
-  - name: completeness
-    scale: [1, 2, 3, 4, 5]
-    instruction: "Does the response include all required fields with meaningful values?"
-```
-
-Add it to your config:
-
-```yaml
-evaluators:
-  - type: heuristic
-    name: json_validity
-  - type: judge
-    name: quality
-    config:
-      rubric: rubrics/support_quality.yaml
-```
-
-Each dimension generates a separate normalised score (0.0–1.0) in the run summary:
-
-```
-Evaluator             | Mean Score | Failure Rate | Cases
-json_validity         |      1.000 |         0.0% |     8   ✅
-field_match_urgency   |      1.000 |         0.0% |     8   ✅
-quality_clarity       |      1.000 |         0.0% |     8   ✅
-quality_accuracy      |      1.000 |         0.0% |     8   ✅
-quality_completeness  |      1.000 |         0.0% |     8   ✅
-```
+Changes to either the `system_prompt` or the `template` are tracked in the prompt hash, so regressions can be detected even when only part of the prompt changes.
 
 ---
 
 ## Score History
 
-Track how your prompt evolves over time:
+Track how a prompt evolves over time:
 
+```bash
+promptforge history --prompt support_triage
 ```
-$ promptforge history --prompt support_triage
 
+Example:
+
+```text
 📈 Evolution — support_triage
 ┏━━━━━━━━━┳━━━━━━━━━━━━┳━━━━━━━━━━━━┳━━━━━━━━━━━━┳━━━━━━━━━━━━━━━┓
-┃ Version ┃ Date       ┃ fm_urgency ┃ fm_cat...  ┃ Trend         ┃
+┃ Version ┃ Date       ┃ fm_urgency ┃ fm_category┃ Trend         ┃
 ┡━━━━━━━━━╇━━━━━━━━━━━━╇━━━━━━━━━━━━╇━━━━━━━━━━━━╇━━━━━━━━━━━━━━━┩
 │ v1.0.0  │ 2026-03-07 │ 0.75 ████░ │ 1.00 █████ │ —             │
 │ v1.1.0  │ 2026-03-07 │ 1.00 █████ │ 1.00 █████ │ ↑ 1 improved  │
@@ -239,146 +298,133 @@ $ promptforge history --prompt support_triage
 
 ---
 
-## Use as a Library
+## Use as a Python Library
 
-PromptForge can also be used directly in Python — no CLI required:
+PromptForge can also be used directly in Python:
 
 ```python
 from dotenv import load_dotenv
-load_dotenv()
 
 from promptforge import PromptSpec, Dataset, RunConfig, EvalPipeline
 from promptforge.store.db import init_db
 from promptforge.store.repositories import ScoreRepository
 from promptforge.eval.aggregations import aggregate_run_scores
 
+load_dotenv()
 init_db()
 
-ps = PromptSpec.from_yaml("prompts/support_triage.yaml")
-ds = Dataset.from_file("datasets/support_golden.yaml")
-rc = RunConfig.from_yaml("configs/support_triage.yaml")
+prompt_spec = PromptSpec.from_yaml("prompts/support_triage.yaml")
+dataset = Dataset.from_file("datasets/support_golden.yaml")
+run_config = RunConfig.from_yaml("configs/support_triage.yaml")
 
-pipeline = EvalPipeline(ps, ds, rc)
+pipeline = EvalPipeline(prompt_spec, dataset, run_config)
 run_id = pipeline.run()
 
 scores = ScoreRepository().get_by_run(run_id)
-agg = aggregate_run_scores(scores)
+summary = aggregate_run_scores(scores)
 
-all_pass = all(s["mean"] >= 0.9 for s in agg.values())
+all_pass = all(metric["mean"] >= 0.9 for metric in summary.values())
+
 if all_pass:
-    print("✅ Prompt approved — safe to promote to production.")
+    print("Prompt approved.")
 else:
-    print("❌ Prompt failed — review failures before promoting.")
+    print("Prompt failed. Review failures before promotion.")
 ```
 
-This makes it easy to integrate PromptForge into CI/CD pipelines, APIs, or monitoring systems.
+This makes PromptForge usable inside CI/CD pipelines, APIs, internal tools or monitoring workflows.
 
 ---
 
-## The Workflow That Changes Everything
+## Typical Workflow
 
-```
-1. You have a prompt that works
-   → promptforge new (2 min to scaffold everything)
+```text
+1. Create or update a prompt
+   → promptforge new
 
-2. Define 10–20 real input/expected cases
-   → golden dataset YAML (done once, reused forever)
+2. Define a golden dataset
+   → real input/expected examples
 
-3. Run: promptforge eval
-   → get scores per case, mean score, failure rate
+3. Run evaluation
+   → promptforge eval
 
-4. Change the prompt → run eval again
-   → promptforge diff shows exactly what improved and what regressed
+4. Change the prompt
+   → run evaluation again
 
-5. promptforge history --prompt <name>
-   → see the full evolution of your prompt over time
+5. Compare versions
+   → promptforge diff
 
-6. promptforge report
-   → Markdown report with ASCII charts to share with your team
+6. Track evolution
+   → promptforge history
+
+7. Share results
+   → promptforge report
 ```
 
 ---
 
 ## Supported Evaluators
 
-| Evaluator       | Type         | What it checks                              |
-| --------------- | ------------ | ------------------------------------------- |
-| `json_validity` | heuristic    | Output is valid JSON                        |
-| `schema_match`  | heuristic    | All required fields are present             |
-| `field_match`   | heuristic    | A specific field matches the expected value |
-| `keyword_match` | heuristic    | Required keywords appear in output          |
-| `length_ok`     | heuristic    | Output is within character limit            |
-| `exact_match`   | heuristic    | Output matches expected text exactly        |
-| `judge`         | LLM-as-judge | Semantic quality scored by a rubric         |
+| Evaluator       | Type      | What it checks                              |
+| --------------- | --------- | ------------------------------------------- |
+| `json_validity` | heuristic | Output is valid JSON                        |
+| `schema_match`  | heuristic | Required fields are present                 |
+| `field_match`   | heuristic | A specific field matches the expected value |
+| `keyword_match` | heuristic | Required keywords appear in the output      |
+| `length_ok`     | heuristic | Output stays within a character limit       |
+| `exact_match`   | heuristic | Output matches the expected text exactly    |
 
 ---
 
-## Supported Providers
+## Supported Provider Setup
 
-| Provider                              | Config                                                                |
-| ------------------------------------- | --------------------------------------------------------------------- |
-| OpenAI (GPT-4o, GPT-4o-mini)          | `provider: openai`                                                    |
-| Anthropic (Claude 3, Claude 3.5)      | `provider: anthropic`                                                 |
-| Groq (Llama, Mixtral) — **free tier** | `provider: openai` + `OPENAI_BASE_URL=https://api.groq.com/openai/v1` |
-| Any OpenAI-compatible API             | `provider: openai` + custom `OPENAI_BASE_URL`                         |
+PromptForge currently uses an OpenAI-compatible provider interface.
+
+| Provider                  | Configuration                                 |
+| ------------------------- | --------------------------------------------- |
+| Groq                      | `provider: openai` + Groq `OPENAI_BASE_URL`   |
+| OpenAI-compatible APIs    | `provider: openai` + custom `OPENAI_BASE_URL` |
+
+For Groq, use:
+
+```bash
+OPENAI_BASE_URL=https://api.groq.com/openai/v1
+```
+
+And configure your prompt with:
+
+```yaml
+model:
+  provider: openai
+  name: llama-3.3-70b-versatile
+  temperature: 0
+```
 
 ---
 
 ## Project Structure
 
-```
+```text
 src/promptforge/
-  core/       # PromptSpec, Dataset, RunConfig, Templating
-  llm/        # Provider adapters (OpenAI, Anthropic)
-  eval/       # Heuristics, LLM-as-judge, Regression
-  store/      # SQLite persistence
-  reporting/  # Markdown reports, CLI tables
-  utils/      # Hashing, redaction, JSONL helpers
+  core/        # PromptSpec, Dataset, RunConfig, templating
+  llm/         # Provider adapter layer
+  eval/        # Heuristics and regression logic
+  store/       # SQLite persistence
+  reporting/   # Markdown reports and CLI tables
+  utils/       # Hashing, redaction, JSONL helpers
 
-prompts/      # Your PromptSpec YAML files
-datasets/     # Your golden datasets
-configs/      # Your RunConfig YAML files
-rubrics/      # Your LLM-as-judge rubric YAML files
-.promptforge/ # SQLite database (auto-created)
+prompts/       # PromptSpec YAML files
+datasets/      # Golden datasets
+configs/       # RunConfig YAML files
+.promptforge/  # SQLite database, auto-created
 ```
-
----
-
-## Design Philosophy
-
-- **Prompts are artefacts, not strings.** Version them. Hash them. Diff them.
-- **Quality is measured, not felt.** Every run produces scores. Every change produces a delta.
-- **LLM-as-judge is a measuring instrument, not truth.** Use it with rubrics, not blind trust.
-- **Minimal dependencies. Maximum auditability.**
-- **Works with free-tier providers.** No excuses not to test.
-
----
-
-## Changelog
-
-### v0.2.0
-
-- LLM-as-judge evaluators with rubric YAML support
-- `promptforge new` — interactive wizard to scaffold prompts, datasets and configs
-- `promptforge history` — visual score evolution across prompt versions
-- System prompt support (`system_prompt` field in PromptSpec)
-- Automatic markdown code block stripping in JSON outputs
-
-### v0.1.0
-
-- Core eval pipeline with heuristic evaluators
-- `promptforge eval`, `diff`, `report`, `runs`, `dashboard`, `validate`
-- SQLite persistence for runs and scores
-- OpenAI and Anthropic provider adapters
 
 ---
 
 ## CI/CD Integration
 
-Add prompt regression testing to any GitHub Actions workflow:
+PromptForge is available as a GitHub Action.
 
 ```yaml
-# .github/workflows/prompt-eval.yml
 name: Prompt Eval
 
 on:
@@ -391,11 +437,11 @@ on:
 jobs:
   eval:
     runs-on: ubuntu-latest
+
     steps:
       - uses: actions/checkout@v4
 
       - name: Run PromptForge eval
-        id: pf
         uses: MPrazeres-1983/promptforge@v1
         with:
           prompt: prompts/support_triage.yaml
@@ -406,29 +452,69 @@ jobs:
           fail-on-regression: "true"
 ```
 
-The action automatically installs `promptforge-llmops`, runs the eval, and fails the workflow if regressions are detected. Available on the [GitHub Marketplace](https://github.com/marketplace/actions/promptforge-eval).
+The action installs `promptforge-llmops`, runs the evaluation and can fail the workflow when regressions are detected.
 
-**Inputs:**
+Available on GitHub Marketplace:
+
+```text
+https://github.com/marketplace/actions/promptforge-eval
+```
+
+### Action Inputs
 
 | Input                | Required | Description                                           |
 | -------------------- | -------- | ----------------------------------------------------- |
-| `prompt`             | ✅       | Path to PromptSpec YAML                               |
-| `dataset`            | ✅       | Path to Dataset YAML or JSONL                         |
-| `config`             | ✅       | Path to RunConfig YAML                                |
-| `openai-api-key`     | ✅       | API key for OpenAI or compatible provider             |
-| `openai-base-url`    | ❌       | Base URL for Groq or other compatible providers       |
-| `baseline-run-id`    | ❌       | Run ID to diff against (enables regression detection) |
-| `fail-on-regression` | ❌       | Fail workflow on regressions (default: `true`)        |
+| `prompt`             | yes      | Path to PromptSpec YAML                               |
+| `dataset`            | yes      | Path to Dataset YAML or JSONL                         |
+| `config`             | yes      | Path to RunConfig YAML                                |
+| `openai-api-key`     | yes      | API key for OpenAI or compatible provider             |
+| `openai-base-url`    | no       | Base URL for OpenAI-compatible providers              |
+| `baseline-run-id`    | no       | Run ID to compare against                             |
+| `fail-on-regression` | no       | Fail workflow when regressions are detected           |
 
 ---
 
-## Docs
+## Design Philosophy
+
+- **Prompts are artefacts, not strings.**
+- **Quality should be measured, not guessed.**
+- **Prompt changes need baselines, datasets and diffs.**
+- **Regression testing should be part of CI/CD.**
+- **Small tools are easier to audit, understand and maintain.**
+
+---
+
+## Documentation
 
 - [Architecture](docs/architecture.md)
 - [PromptSpec Reference](docs/prompt_spec.md)
 - [Dataset Format](docs/evaluation.md)
 - [CLI Reference](docs/cli.md)
 - [Roadmap](docs/roadmap.md)
+
+---
+
+## Changelog
+
+### v0.2.0
+
+- `promptforge new` interactive wizard
+- `promptforge history` for score evolution
+- System prompt support through `system_prompt`
+- Markdown code block stripping for JSON outputs
+
+### v0.1.0
+
+- Core evaluation pipeline
+- Heuristic evaluators
+- `promptforge eval`
+- `promptforge diff`
+- `promptforge report`
+- `promptforge runs`
+- `promptforge dashboard`
+- `promptforge validate`
+- SQLite persistence for runs and scores
+- OpenAI-compatible provider interface
 
 ---
 
